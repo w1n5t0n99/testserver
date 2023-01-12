@@ -49,16 +49,14 @@ impl DatabaseSettings {
             .ssl_mode(ssl_mode)
             */
         
-        let connection_string = format!("postgresql://{}:{}@{}:{}/{}?{}",
+        format!("postgresql://{}:{}@{}:{}/{}?{}",
             &self.username,
             &self.password.expose_secret(),
             &self.host,
             self.port,
             &self.database_name,
             ssl_mode,
-            );
-
-        connection_string
+        )
     }
 
     pub fn get_test_connection_string(&self) -> String {

@@ -7,6 +7,7 @@ use std::net::TcpListener;
 
 
 use crate::configuration::{DatabaseSettings, Settings};
+use crate::routes::*;
 
 pub struct Application {
     port: u16,
@@ -15,15 +16,12 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
-        //let connection_pool = get_connection_pool(&configuration.database);
-        //let email_client = configuration.email_client.client();
+        let connection_pool = get_connection_pool(&configuration.database).await;
 
-        let address = format!(
-            "{}:{}",
-            configuration.application.host, configuration.application.port
-        );
+        let address = format!("{}:{}", configuration.application.host, configuration.application.port);
         let listener = TcpListener::bind(&address)?;
         let port = listener.local_addr().unwrap().port();
+
         let server = run(
             listener,
             configuration.application.base_url,
@@ -53,10 +51,6 @@ pub async fn get_connection_pool(configuration: &DatabaseSettings) -> DatabaseCo
     Database::connect(opt).await.expect("Could not connect to database")
 }
 
-#[get("/index")]
-async fn index() -> impl Responder {
-    "Hello world!"
-}
 
 async fn run(
     listener: TcpListener,
@@ -66,11 +60,8 @@ async fn run(
    
     let server = HttpServer::new(move || {
         App::new()
-            .service(
-                // prefixes all resources and routes attached to it...
-                web::scope("/app")
-                    .service(index)
-            )
+            .service(health_check::health_check)
+            .service(home::home)
     })
     .listen(listener)?
     .run();

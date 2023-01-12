@@ -8,5 +8,5 @@ database:
   port: 5432
   username: "postgres"
   password: "password"
-  database_name: "rcps-assets"
+  database_name: "testserver-postgres"
   require_ssl: false
