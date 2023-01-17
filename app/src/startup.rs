@@ -16,7 +16,7 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
-        let connection_pool = get_connection_pool(&configuration.database).await;
+        let db_conn = get_database_connection(&configuration.database).await;
 
         let address = format!("{}:{}", configuration.application.host, configuration.application.port);
         let listener = TcpListener::bind(&address)?;
@@ -24,6 +24,7 @@ impl Application {
 
         let server = run(
             listener,
+            db_conn,
             configuration.application.base_url,
             configuration.application.hmac_secret,
         )
@@ -41,7 +42,7 @@ impl Application {
     }
 }
 
-pub async fn get_connection_pool(configuration: &DatabaseSettings) -> DatabaseConnection {
+pub async fn get_database_connection(configuration: &DatabaseSettings) -> DatabaseConnection {
     let mut opt = ConnectOptions::new(configuration.get_connection_string());
 
     opt.sqlx_logging(true)
@@ -54,14 +55,18 @@ pub async fn get_connection_pool(configuration: &DatabaseSettings) -> DatabaseCo
 
 async fn run(
     listener: TcpListener,
+    db_connection: DatabaseConnection,
     _base_url: String,
     _hmac_secret: Secret<String>,
 ) -> Result<Server, anyhow::Error> {
+    let db_connection = web::Data::new(db_connection);
    
     let server = HttpServer::new(move || {
         App::new()
             .service(health_check::health_check)
+            .service(assets::assets)
             .service(home::home)
+            .app_data(db_connection.clone())
     })
     .listen(listener)?
     .run();

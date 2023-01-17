@@ -2,6 +2,7 @@ mod configuration;
 mod telemetry;
 mod startup;
 mod routes;
+mod db;
 
 
 #[tokio::main]
