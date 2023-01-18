@@ -16,3 +16,8 @@ pub async fn find_assets_in_page(
     paginator.fetch_page(page-1).await.map(|p| (p, num_pages))
 }
 
+pub async fn find_all_assets(db: &DbConn) -> Result<Vec<asset::Model>, DbErr> {
+    let assets = Asset::find().all(db).await;
+    assets
+}
+
