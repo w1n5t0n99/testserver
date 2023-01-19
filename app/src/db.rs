@@ -21,6 +21,9 @@ pub async fn find_all_assets(db: &DbConn) -> Result<Vec<asset::Model>, DbErr> {
     assets
 }
 
-pub async fn find_user(username: &str, db: &DbConn) {
-    
+pub async fn find_user(username: &str, db: &DbConn) -> Result<Option<user::Model>, DbErr> {
+    User::find()
+        .filter(user::Column::Username.eq(username))
+        .one(db)
+        .await
 }
