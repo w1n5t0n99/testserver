@@ -1,5 +1,5 @@
 use sea_orm::*;
-use ::entity::{prelude::Asset, asset};
+use ::entity::{prelude::Asset, asset, prelude::User, user};
 
 
 pub async fn find_assets_in_page(
@@ -21,3 +21,6 @@ pub async fn find_all_assets(db: &DbConn) -> Result<Vec<asset::Model>, DbErr> {
     assets
 }
 
+pub async fn find_user(username: &str, db: &DbConn) {
+    
+}

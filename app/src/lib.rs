@@ -3,6 +3,8 @@ mod telemetry;
 mod startup;
 mod routes;
 mod db;
+mod utils;
+mod auth;
 
 
 #[tokio::main]

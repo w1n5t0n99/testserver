@@ -1,10 +1,9 @@
 use actix_web::{get, web, Responder};
-use futures::TryFutureExt;
 use sea_orm::DbConn;
 
 use crate::db::*;
 
-#[tracing::instrument( name = "Assets", skip_all())]
+#[tracing::instrument( name = "Assets", skip_all)]
 #[get("/assets")]
 pub async fn assets(db: web::Data<DbConn>) -> impl Responder {
     let assets = find_all_assets(&db).await;
