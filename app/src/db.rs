@@ -1,6 +1,6 @@
 use sea_orm::*;
 use ::entity::{prelude::Asset, asset, prelude::User, user};
-
+use secrecy::{Secret, ExposeSecret};
 
 pub async fn find_assets_in_page(
     db: &DbConn,
@@ -26,4 +26,14 @@ pub async fn find_user(username: &str, db: &DbConn) -> Result<Option<user::Model
         .filter(user::Column::Username.eq(username))
         .one(db)
         .await
+}
+
+pub async fn update_user_password(user_id: uuid::Uuid, password_hash: Secret<String>, db: &DbConn) -> Result<(), DbErr> {
+    let user = User::find_by_id(user_id).one(db).await?;
+    let mut user: user::ActiveModel = user.unwrap().into();
+    
+    user.password_hash = Set(password_hash.expose_secret().to_owned());
+    user.update(db).await?;    
+
+    Ok(())
 }

@@ -5,6 +5,7 @@ mod routes;
 mod db;
 mod utils;
 mod auth;
+mod session_state;
 
 
 #[tokio::main]

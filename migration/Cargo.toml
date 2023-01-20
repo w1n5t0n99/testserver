@@ -9,7 +9,10 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
+entity = { path = "../entity" }
+
 async-std = { version = "^1", features = ["attributes", "tokio1"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 
 [dependencies.sea-orm-migration]
 version = "^0.10.0"
