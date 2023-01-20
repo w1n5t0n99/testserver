@@ -11,6 +11,7 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         let db = manager.get_connection();
 
+        // password = everythinghastostartsomewhere
         user::ActiveModel {
             user_id: Set(uuid::Uuid::new_v4()),
             username: Set("admin".to_owned()),
