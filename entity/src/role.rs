@@ -3,24 +3,21 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user")]
+#[sea_orm(table_name = "role")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub user_id: Uuid,
-    #[sea_orm(unique)]
-    pub username: String,
-    pub password_hash: String,
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 
-impl Related<super::role::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        super::user_roles::Relation::Role.def()
+        super::user_roles::Relation::User.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::user_roles::Relation::User.def().rev())
+        Some(super::user_roles::Relation::Role.def().rev())
     }
 }
 

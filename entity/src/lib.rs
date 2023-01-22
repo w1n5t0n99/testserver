@@ -3,4 +3,6 @@
 pub mod prelude;
 
 pub mod asset;
+pub mod role;
 pub mod user;
+pub mod user_roles;
