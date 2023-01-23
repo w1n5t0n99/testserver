@@ -29,6 +29,7 @@ tracing-bunyan-formatter = "0.3.4"
 tracing-actix-web = "0.6"
 actix-web-flash-messages = { version = "0.4", features = ["cookies"] }
 actix-session = { version = "0.7", features = ["redis-rs-tls-session", "cookie-session"] }
+actix-web-grants = "3.0.1"
 actix-multipart = "0.4.0"
 actix-web-lab = "0.18.9"
 sailfish = "0.5.0"

@@ -13,6 +13,7 @@ use std::net::TcpListener;
 
 
 use crate::configuration::{DatabaseSettings, Settings};
+use crate::auth::reject_anonymous_users;
 use crate::routes::*;
 
 pub struct Application {
@@ -74,13 +75,23 @@ async fn run(
         App::new()
             .wrap(message_framework.clone())
             .wrap(SessionMiddleware::new(CookieSessionStore::default(), secret_key.clone()))
-            .service(health_check::health_check)
-            .service(assets::assets)
-            .service(home::home)
-            .service(login::view_login)
+            .configure(init)
             .app_data(db_connection.clone())
     })
     .listen(listener)?
     .run();
     Ok(server)
+}
+
+fn init(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/web")
+            .wrap(from_fn(reject_anonymous_users))
+            .service(home::home)
+            .service(assets::assets)
+        );
+
+    cfg.service(health_check::health_check);
+    cfg.service(login::view_login);
+    cfg.service(login::post_login);
 }
