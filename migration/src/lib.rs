@@ -6,6 +6,8 @@ mod m20230119_102725_create_user_table;
 mod m20230120_093120_user_seed;
 mod m20230122_141730_create_roles_table;
 mod m20230122_145143_create_user_roles_table;
+mod m20230122_185614_role_seed;
+mod m20230122_190717_admin_roles_seed;
 
 pub struct Migrator;
 
@@ -19,6 +21,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20230120_093120_user_seed::Migration),
             Box::new(m20230122_141730_create_roles_table::Migration),
             Box::new(m20230122_145143_create_user_roles_table::Migration),
+            Box::new(m20230122_185614_role_seed::Migration),
+            Box::new(m20230122_190717_admin_roles_seed::Migration),
         ]
     }
 }

@@ -1,6 +1,7 @@
 use actix_web::{get, web, Responder};
 use sea_orm::DbConn;
 use secrecy::Secret;
+use tracing_subscriber::fmt::format;
 
 use crate::auth::{validate_credentials, Credentials, AuthError};
 use crate::session_state::TypedSession;
@@ -17,7 +18,27 @@ pub async fn assets(db: web::Data<DbConn>) -> impl Responder {
 
     let auth_text = match validate_credentials(credentials, &db).await {
         Ok(user_id) => {
-            format!("user id: {} found for username: admin\n", user_id)
+            let mut text = format!("user id: {} found for username: admin\n", user_id);
+
+            let user_roles = find_user_roles(user_id, &db).await;
+            match user_roles {
+                Ok(ur_vec) => {
+                    for (user, role) in ur_vec {
+                        match role {
+                            Some(r) => {
+                                let line = format!("\trole: {}\n", r.id);
+                                text.push_str(line.as_str());
+                            }
+                            None => {  }
+                        }
+                    }
+                }
+                Err(_) => { 
+
+                }
+            }
+
+            text
         }
         Err(e) => {
             match e {
@@ -26,6 +47,8 @@ pub async fn assets(db: web::Data<DbConn>) -> impl Responder {
             }
         }
     };
+
+
 
     //==============================================
     let assets = find_all_assets(&db).await;

@@ -1,5 +1,7 @@
 use sea_orm::*;
-use ::entity::{prelude::Asset, asset, prelude::User, user};
+use ::entity::{asset, user, role};
+use ::entity::prelude::{Asset, User, Role};
+use ::entity::entity_linked;
 use secrecy::{Secret, ExposeSecret};
 
 pub async fn find_assets_in_page(
@@ -36,4 +38,13 @@ pub async fn update_user_password(user_id: uuid::Uuid, password_hash: Secret<Str
     user.update(db).await?;    
 
     Ok(())
+}
+
+pub async fn find_user_roles(user_id: uuid::Uuid, db: &DbConn) -> Result<Vec<(user::Model, Option<role::Model>)>, DbErr> {
+    let users = User::find_by_id(user_id)
+        .find_also_linked(entity_linked::UserToRole)
+        .all(db)
+        .await?;
+
+    Ok(users)
 }
