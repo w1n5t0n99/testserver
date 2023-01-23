@@ -1,8 +1,14 @@
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, get, App, HttpServer, Responder};
+use actix_session::storage::CookieSessionStore;
+use actix_session::SessionMiddleware;
+use actix_web_flash_messages::storage::CookieMessageStore;
+use actix_web_flash_messages::FlashMessagesFramework;
+use actix_web_lab::middleware::from_fn;
+use actix_web::cookie::Key;
 use sea_orm::{DatabaseConnection, ConnectOptions, Database};
-use secrecy::Secret;
+use secrecy::{Secret, ExposeSecret};
 use std::net::TcpListener;
 
 
@@ -57,15 +63,21 @@ async fn run(
     listener: TcpListener,
     db_connection: DatabaseConnection,
     _base_url: String,
-    _hmac_secret: Secret<String>,
+    hmac_secret: Secret<String>,
 ) -> Result<Server, anyhow::Error> {
     let db_connection = web::Data::new(db_connection);
+    let secret_key = Key::from(hmac_secret.expose_secret().as_bytes());
+    let message_store = CookieMessageStore::builder(secret_key.clone()).build();
+    let message_framework = FlashMessagesFramework::builder(message_store).build();
    
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(message_framework.clone())
+            .wrap(SessionMiddleware::new(CookieSessionStore::default(), secret_key.clone()))
             .service(health_check::health_check)
             .service(assets::assets)
             .service(home::home)
+            .service(login::view_login)
             .app_data(db_connection.clone())
     })
     .listen(listener)?
