@@ -84,7 +84,7 @@ pub async fn post_login (
                 .insert_user_id(user_id)
                 .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))?;
 
-            Ok(see_other("/home"))
+            Ok(see_other("/web/home"))
         }
         Err(e) => {
             let e = match e {

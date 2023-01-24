@@ -5,6 +5,7 @@ use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
 use actix_web_flash_messages::storage::CookieMessageStore;
 use actix_web_flash_messages::FlashMessagesFramework;
+use actix_web_grants::GrantsMiddleware;
 use actix_web_lab::middleware::from_fn;
 use actix_web::cookie::Key;
 use sea_orm::{DatabaseConnection, ConnectOptions, Database};
@@ -13,8 +14,9 @@ use std::net::TcpListener;
 
 
 use crate::configuration::{DatabaseSettings, Settings};
-use crate::auth::reject_anonymous_users;
+use crate::auth::{reject_anonymous_users, extract_user_roles};
 use crate::routes::*;
+
 
 pub struct Application {
     port: u16,
@@ -75,8 +77,8 @@ async fn run(
         App::new()
             .wrap(message_framework.clone())
             .wrap(SessionMiddleware::new(CookieSessionStore::default(), secret_key.clone()))
-            .configure(init)
             .app_data(db_connection.clone())
+            .configure(init)
     })
     .listen(listener)?
     .run();
@@ -86,9 +88,11 @@ async fn run(
 fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/web")
+            .wrap(GrantsMiddleware::with_extractor(extract_user_roles))
             .wrap(from_fn(reject_anonymous_users))
             .service(home::home)
             .service(assets::assets)
+            .service(logout::log_out)
         );
 
     cfg.service(health_check::health_check);

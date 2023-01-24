@@ -40,11 +40,19 @@ pub async fn update_user_password(user_id: uuid::Uuid, password_hash: Secret<Str
     Ok(())
 }
 
-pub async fn find_user_roles(user_id: uuid::Uuid, db: &DbConn) -> Result<Vec<(user::Model, Option<role::Model>)>, DbErr> {
+pub async fn find_user_roles(user_id: uuid::Uuid, db: &DbConn) -> Result<Vec<String>, DbErr> {
     let users = User::find_by_id(user_id)
         .find_also_linked(entity_linked::UserToRole)
         .all(db)
         .await?;
 
-    Ok(users)
+    let roles: Vec<String> = users.iter()
+        .filter_map(|(_user, role)| 
+            match role {
+                Some(role) => Some(role.id.clone()),
+                None => None,            }
+        )
+        .collect();
+
+    Ok(roles)
 }
