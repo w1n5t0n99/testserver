@@ -65,12 +65,11 @@ pub async fn extract_user_roles(req: &mut ServiceRequest) -> Result<Vec<String>,
         .app_data::<Data<DbConn>>()
         .ok_or_else(|| e500("Database connection extractor not found"))?;
 
-    let user_id = user_id.to_owned().into_inner();
+    let user_id = user_id.into_inner();
 
     let roles = find_user_roles(*user_id, db_conn)
         .await
         .map_err(|e| e500(e))?;
 
-    
     Ok(roles)    
 }
