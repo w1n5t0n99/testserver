@@ -10,6 +10,7 @@ use actix_web_lab::middleware::from_fn;
 use actix_web::cookie::{Key, time::Duration};
 use sea_orm::{DatabaseConnection, ConnectOptions, Database};
 use secrecy::{Secret, ExposeSecret};
+use tracing_actix_web::TracingLogger;
 use std::net::TcpListener;
 
 use crate::configuration::{DatabaseSettings, Settings};
@@ -79,6 +80,7 @@ async fn run(
                 .session_lifecycle(PersistentSession::default().session_ttl(Duration::hours(8)))
                 .build()
             )
+            .wrap(TracingLogger::default())
             .app_data(db_connection.clone())
             .configure(init)
     })
