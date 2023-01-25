@@ -1,17 +1,16 @@
 use actix_web::dev::Server;
-use actix_web::web::Data;
-use actix_web::{web, get, App, HttpServer, Responder};
+use actix_web::{web, App, HttpServer};
 use actix_session::storage::CookieSessionStore;
 use actix_session::SessionMiddleware;
+use actix_session::config::PersistentSession;
 use actix_web_flash_messages::storage::CookieMessageStore;
 use actix_web_flash_messages::FlashMessagesFramework;
 use actix_web_grants::GrantsMiddleware;
 use actix_web_lab::middleware::from_fn;
-use actix_web::cookie::Key;
+use actix_web::cookie::{Key, time::Duration};
 use sea_orm::{DatabaseConnection, ConnectOptions, Database};
 use secrecy::{Secret, ExposeSecret};
 use std::net::TcpListener;
-
 
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::auth::{reject_anonymous_users, extract_user_roles};
@@ -76,7 +75,10 @@ async fn run(
     let server = HttpServer::new(move || {
         App::new()
             .wrap(message_framework.clone())
-            .wrap(SessionMiddleware::new(CookieSessionStore::default(), secret_key.clone()))
+            .wrap(SessionMiddleware::builder(CookieSessionStore::default(), secret_key.clone())
+                .session_lifecycle(PersistentSession::default().session_ttl(Duration::hours(8)))
+                .build()
+            )
             .app_data(db_connection.clone())
             .configure(init)
     })

@@ -50,7 +50,8 @@ pub async fn find_user_roles(user_id: uuid::Uuid, db: &DbConn) -> Result<Vec<Str
         .filter_map(|(_user, role)| 
             match role {
                 Some(role) => Some(role.id.clone()),
-                None => None,            }
+                None => None,            
+            }
         )
         .collect();
 

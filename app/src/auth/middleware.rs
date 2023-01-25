@@ -1,6 +1,5 @@
 use crate::session_state::TypedSession;
 use crate::utils::{e500, see_other};
-use crate::auth::{validate_credentials, Credentials, AuthError};
 use crate::db::*;
 
 use actix_web::body::MessageBody;
