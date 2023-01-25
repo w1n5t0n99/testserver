@@ -28,7 +28,9 @@ pub async fn home(flash_messages: IncomingFlashMessages) -> impl Responder {
         </html>"#
     );
 
+   
     HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(body) 
+    
 }

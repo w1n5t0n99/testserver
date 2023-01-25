@@ -2,23 +2,42 @@ use crate::session_state::TypedSession;
 use crate::utils::{e500, see_other};
 use crate::db::*;
 
-use actix_web::body::MessageBody;
-use actix_web::dev::{ServiceRequest, ServiceResponse};
-use actix_web::error::InternalError;
-use actix_web::web::{Data, ReqData};
-use actix_web::{FromRequest, HttpMessage};
-use actix_web_lab::middleware::Next;
+use anyhow::Context;
 use sea_orm::DbConn;
-use std::ops::Deref;
 use uuid::Uuid;
 
 
+#[derive(thiserror::Error, Debug)]
+pub enum ClientError {
+    #[error("Missing User Session")]
+    MissingUserSession,
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+}
+
 #[derive(Clone, Debug)]
-pub struct ClientCtx {
+pub struct Client {
     pub user_id: Uuid,
-    pub user_name: String,
     pub roles: Vec<String>,
 }
 
+impl Client {
+    pub async fn from_user_session(session: &TypedSession, db: &DbConn) -> Result<Client, ClientError> {
+        let user_id = session.get_user_id()
+            .context("Session Error")
+            .map_err(ClientError::UnexpectedError)?;
+    
+        let user_id = user_id.ok_or_else(|| ClientError::MissingUserSession)?;
+    
+        let roles = find_user_roles(user_id, db)
+            .await
+            .map_err(|e| ClientError::UnexpectedError(e.into()))?;
+        
+        Ok(Client {
+            user_id,
+            roles,
+        })
+    }
+}
 
 

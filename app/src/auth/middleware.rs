@@ -1,6 +1,6 @@
 use crate::session_state::TypedSession;
 use crate::utils::{e500, see_other};
-use crate::db::*;
+use crate::auth::{Client, ClientError};
 
 use actix_web::body::MessageBody;
 use actix_web::dev::{ServiceRequest, ServiceResponse};
@@ -9,26 +9,6 @@ use actix_web::web::{Data, ReqData};
 use actix_web::{FromRequest, HttpMessage};
 use actix_web_lab::middleware::Next;
 use sea_orm::DbConn;
-use std::ops::Deref;
-use uuid::Uuid;
-
-
-#[derive(Copy, Clone, Debug)]
-pub struct UserId(Uuid);
-
-impl std::fmt::Display for UserId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
-    }
-}
-
-impl Deref for UserId {
-    type Target = Uuid;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 
 pub async fn reject_anonymous_users(
@@ -40,35 +20,34 @@ pub async fn reject_anonymous_users(
         TypedSession::from_request(http_request, payload).await
     }?;
 
-    match session.get_user_id().map_err(e500)? {
-        Some(user_id) => {
-            req.extensions_mut().insert(UserId(user_id));
+    let db = req
+        .app_data::<Data<DbConn>>()
+        .ok_or_else(|| e500("Database connection extractor not found"))?;
+
+    let client = Client::from_user_session(&session, db).await;
+   
+    match client {
+        Ok(client) => {
+            req.extensions_mut().insert(client.clone());
             next.call(req).await
         }
-        None => {
+        Err(ClientError::MissingUserSession) => {
             Err(InternalError::from_response(
                 anyhow::anyhow!("The user has not logged in"),
-             see_other("/login")).into())
+                see_other("/login")).into())
+        }
+        Err(ClientError::UnexpectedError(e)) => {
+            Err(e500(e))
         }
     }
 }
 
 pub async fn extract_user_roles(req: &mut ServiceRequest) -> Result<Vec<String>, actix_web::Error> {
-    let user_id = req
-        .extract::<ReqData<UserId>>()
+    let client = req
+        .extract::<ReqData<Client>>()
         .await
-        .map_err(|_e| e500("User ID not found")
+        .map_err(|_e| e500("User client not found")
         )?;
 
-    let db_conn = req
-        .app_data::<Data<DbConn>>()
-        .ok_or_else(|| e500("Database connection extractor not found"))?;
-
-    let user_id = user_id.into_inner();
-
-    let roles = find_user_roles(*user_id, db_conn)
-        .await
-        .map_err(|e| e500(e))?;
-
-    Ok(roles)    
+    Ok(client.roles.clone())    
 }
