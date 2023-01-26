@@ -30,7 +30,7 @@ tracing-actix-web = "0.6"
 actix-web-flash-messages = { version = "0.4", features = ["cookies"] }
 actix-session = { version = "0.7", features = ["redis-rs-tls-session", "cookie-session"] }
 actix-web-grants = "3.0.1"
-actix-multipart = "0.4.0"
+actix-multipart = "0.5.0"
 actix-web-lab = "0.18.9"
 sailfish = "0.5.0"
 argon2 = { version = "0.4", features = ["std"] }
@@ -39,3 +39,5 @@ once_cell = "1.17.0"
 anyhow = "1.0.68"
 thiserror = "1.0.38"
 rand = "0.8.5"
+mime = "0.3.16"
+blake3 = "1.3.3"
