@@ -96,6 +96,7 @@ fn init(cfg: &mut web::ServiceConfig) {
             .wrap(from_fn(reject_anonymous_users))
             .service(home::home)
             .service(assets::assets)
+            .service(assets::add_asset)
             .service(logout::log_out)
         );
 

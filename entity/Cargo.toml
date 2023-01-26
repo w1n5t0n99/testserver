@@ -9,3 +9,4 @@ publish = false
 
 [dependencies]
 sea-orm = { version = "^0.10.0" }
+serde = "1.0.144"

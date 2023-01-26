@@ -15,7 +15,7 @@ pub async fn home(flash_messages: IncomingFlashMessages) -> impl Responder {
         <html lang="en">
             <head>
                 <meta http-equiv="content-type" content="text/html; charset=utf-8">
-                <title>Login</title>
+                <title>Home</title>
             </head>
             <body>
                 <label>Home Page!</label>

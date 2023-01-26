@@ -3,6 +3,7 @@ use ::entity::{asset, user, role};
 use ::entity::prelude::{Asset, User, Role};
 use ::entity::entity_linked;
 use secrecy::{Secret, ExposeSecret};
+use serde::Deserialize;
 
 pub async fn find_assets_in_page(
     db: &DbConn,
@@ -56,4 +57,14 @@ pub async fn find_user_roles(user_id: uuid::Uuid, db: &DbConn) -> Result<Vec<Str
         .collect();
 
     Ok(roles)
+}
+
+
+pub async fn insert_asset(asset_model: asset::Model, db: &DbConn) -> Result<(), DbErr> {
+    let mut asset_active: asset::ActiveModel = asset_model.into();
+    asset_active.id = ActiveValue::NotSet;
+
+    let _res = asset::Entity::insert(asset_active).exec(db).await?;
+
+    Ok(())
 }
