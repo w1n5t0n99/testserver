@@ -2,75 +2,43 @@ use actix_web::error::InternalError;
 use actix_web::http::header::ContentType;
 use actix_web::{get, post, web, Responder, HttpResponse};
 use actix_web_grants::proc_macro::has_permissions;
+use entity::asset;
 use sea_orm::DbConn;
 use actix_web_flash_messages::FlashMessage;
 
 use crate::db::*;
 use crate::auth::Client;
-use crate::utils::{error_chain_fmt, see_other};
+use crate::utils::{error_chain_fmt, see_other, e500};
+use sailfish::TemplateOnce;
 
+
+#[derive(TemplateOnce)]
+#[template(path = "assets.stpl")]
+struct AssetsPage<'a> {
+    pub assets_table: &'a[asset::Model],
+    pub messages: Vec<String>,
+}
 
 #[tracing::instrument( name = "assets", skip_all)]
 #[has_permissions("admin")]
 #[get("/assets")]
-pub async fn assets(client: web::ReqData<Client>, db: web::Data<DbConn>) -> impl Responder {
-    let assets = find_all_assets(&db).await;
+pub async fn assets(client: web::ReqData<Client>, db: web::Data<DbConn>) -> Result<impl Responder, actix_web::Error> {
+    let assets = find_all_assets(&db)
+        .await
+        .map_err(e500)?;
+        
     let client = client.into_inner();
 
-    let mut body = "".to_string();
-    body.push_str(format!("<p><label>USER ID {}: CURRENTLY LOGGED IN</label>\n", client.user_id).as_str());
-    for r in client.roles {
-        body.push_str(format!("<label>USER ROLE - {}</label>\n", r).as_str());
+    let body = AssetsPage {
+        assets_table: assets.as_slice(),
+        messages: vec!["This is a test flash message".to_string()],
     }
-    body.push_str("</p>");
-
-    body.push_str("<p>");
-    if let Ok(assets) = assets {
-        for asset in &assets {
-            let line = format!("<label>{} - {}</label>\n", asset.name, asset.description);
-            body.push_str(line.as_str());
-        }
-    }
-    else {
-        body = "no assets found!".to_string();
-    }
-    body.push_str("</p>\n");
-
-    let html_body = format!(
-        r#"<!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta http-equiv="content-type" content="text/html; charset=utf-8">
-                <title>Asset</title>
-            </head>
-            <body>
-                <label>Asset Page!</label>
-                {body}
-                <form action="/web/assets/add" method="post">  
-                    <label>Test Insert Asset form</label>  
-                    <label>Name
-                        <input 
-                            type="text" 
-                            placeholder="Enter Asset Name" 
-                            name="name"
-                        >
-                    </label>
-                    <label>Description
-                        <input 
-                            type="text" 
-                            placeholder="Enter Description"
-                            name="description"
-                        >
-                    </label>   
-                    <button type="submit">Add</button>
-                </form>
-            </body>
-        </html>"#
-    );
-
-    HttpResponse::Ok()
+    .render_once()
+    .map_err(e500)?;
+    
+    Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(html_body) 
+        .body(body))
 }
 
 #[derive(thiserror::Error)]
