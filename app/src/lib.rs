@@ -6,6 +6,7 @@ mod db;
 mod utils;
 mod auth;
 mod session_state;
+mod filesystem;
 
 
 #[tokio::main]
