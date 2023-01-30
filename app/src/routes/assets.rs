@@ -4,7 +4,7 @@ use actix_web::{get, post, web, Responder, HttpResponse};
 use actix_web_grants::proc_macro::has_permissions;
 use entity::asset;
 use sea_orm::DbConn;
-use actix_web_flash_messages::FlashMessage;
+use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
 
 use crate::db::*;
 use crate::auth::Client;
@@ -16,22 +16,28 @@ use sailfish::TemplateOnce;
 #[template(path = "assets.stpl")]
 struct AssetsPage<'a> {
     pub assets_table: &'a[asset::Model],
-    pub messages: Vec<String>,
+    pub messages: Vec<&'a str>,
 }
 
 #[tracing::instrument( name = "assets", skip_all)]
 #[has_permissions("admin")]
 #[get("/assets")]
-pub async fn assets(client: web::ReqData<Client>, db: web::Data<DbConn>) -> Result<impl Responder, actix_web::Error> {
+pub async fn assets(
+    flash_messages: IncomingFlashMessages,
+    client: web::ReqData<Client>,
+    db: web::Data<DbConn>
+) -> Result<impl Responder, actix_web::Error> {
+    
     let assets = find_all_assets(&db)
         .await
         .map_err(e500)?;
         
     let client = client.into_inner();
 
+    let messages: Vec<&str> = flash_messages.iter().map(|f| f.content()).collect();
     let body = AssetsPage {
         assets_table: assets.as_slice(),
-        messages: vec!["This is a test flash message".to_string()],
+        messages: messages,
     }
     .render_once()
     .map_err(e500)?;

@@ -23,7 +23,7 @@
     </div>
   <% } %>
   
-  <form class="row p-2 align-items-center" action="/web/assets/add">
+  <form class="row p-2 align-items-center" action="/web/assets/add" method="post">
     <div class="col-auto">
       <label class="visually-hidden" for="autoSizingInput">Name</label>
       <input type="text" class="form-control" id="autoSizingInput" placeholder="Asset Name" name="name">
