@@ -8,7 +8,7 @@ use actix_web_flash_messages::FlashMessage;
 
 use crate::db::*;
 use crate::auth::Client;
-use crate::utils::{error_chain_fmt, see_other, e500};
+use crate::utils::{error_chain_fmt, see_other, e500, DbErrbExt};
 use sailfish::TemplateOnce;
 
 
@@ -45,6 +45,8 @@ pub async fn assets(client: web::ReqData<Client>, db: web::Data<DbConn>) -> Resu
 pub enum AddError {
     #[error("Validation failed")]
     Validation(#[source] anyhow::Error),
+    #[error("Duplicate key")]
+    DuplicateKey(#[source] anyhow::Error),
     #[error("Something went wrong")]
     UnexpectedError(#[from] anyhow::Error),
 }
@@ -53,6 +55,11 @@ impl std::fmt::Debug for AddError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
     }
+}
+
+fn asset_redirect(e: AddError) -> InternalError<AddError> {
+    FlashMessage::error(e.to_string()).send();
+    InternalError::from_response(e, see_other("/web/assets"))
 }
 
 #[tracing::instrument( name = "add assets", skip_all)]
@@ -64,7 +71,10 @@ pub async fn add_asset(asset_model: web::Form<entity::asset::Model>, db: web::Da
     let asset_model = asset_model.into_inner();
     let res = insert_asset(asset_model, &db)
         .await
-        .map_err(|e| AddError::UnexpectedError(e.into()));
+        .map_err(|e| {
+            if e.is_duplicate_key() { AddError::DuplicateKey(e.into()) }
+            else { AddError::UnexpectedError(e.into()) }
+        });
 
     match res {
         Ok(_) => {
@@ -72,8 +82,7 @@ pub async fn add_asset(asset_model: web::Form<entity::asset::Model>, db: web::Da
             Ok(see_other("/web/assets"))
         }
         Err(e) => {
-            FlashMessage::info("Error: Could Not Add Asset.").send();
-            Err(InternalError::from_response(e, see_other("/web/assets")))
+            Err(asset_redirect(e))
         }
     }
 }

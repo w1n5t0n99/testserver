@@ -8,8 +8,9 @@ use secrecy::Secret;
 
 use crate::auth::{validate_credentials, Credentials, AuthError};
 use crate::session_state::TypedSession;
-use crate::utils::{see_other, error_chain_fmt, e500, ResultValidateExt};
+use crate::utils::{see_other, error_chain_fmt, e500, ValidationErrorsExt};
 use validator::{Validate, ValidationError};
+// "everythinghastostartsomewhere"
 
 
 #[derive(TemplateOnce)]
@@ -45,8 +46,10 @@ pub struct LoginForm {
 
 #[derive(thiserror::Error)]
 pub enum LoginError {
-    #[error("Authentication failed")]
-    AuthError(#[source] anyhow::Error),
+    #[error("Authentication failed - check username and password are correct")]
+    Auth(#[source] anyhow::Error),
+    #[error("Validation failed - check username and password are valid")]
+    Validation(#[source] anyhow::Error),
     #[error("Something went wrong")]
     UnexpectedError(#[from] anyhow::Error),
 }
@@ -74,16 +77,18 @@ pub async fn post_login (
     session: TypedSession,
 ) -> Result<impl Responder, InternalError<LoginError>> {
     let form_data = form_data.into_inner();
-    // "everythinghastostartsomewhere"
-    let formres = form_data.validate();
-    if formres.is_field_valid("username") == false {
-        FlashMessage::info("Username must not be empty").send();
-    }
+    if let Err(e) = form_data.validate() {
+        if e.is_field_invalid("username") {
+           // FlashMessage::info("Username must not be empty").send();
+        }
+    
+        if e.is_field_invalid("password") {
+           // FlashMessage::info("Password must be atleast 8 charcters").send();
+        }
 
-    if formres.is_field_valid("password") == false {
-        FlashMessage::info("Password must be atleast 8 charcters").send();
+        return Err(login_redirect(LoginError::Validation(e.into())));
     }
-
+    
     let credentials = Credentials {
         username: form_data.username,
         password: form_data.password.into(),
@@ -102,7 +107,7 @@ pub async fn post_login (
         }
         Err(e) => {
             let e = match e {
-                AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+                AuthError::InvalidCredentials(_) => LoginError::Auth(e.into()),
                 AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
             };
             Err(login_redirect(e))
