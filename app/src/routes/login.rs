@@ -2,14 +2,46 @@ use actix_web::error::InternalError;
 use actix_web::http::header::ContentType;
 use actix_web::{get, post, Responder, web, HttpResponse};
 use actix_web_flash_messages::{FlashMessage, IncomingFlashMessages};
+use sailfish::TemplateOnce;
 use sea_orm::DbConn;
 use secrecy::Secret;
 
 use crate::auth::{validate_credentials, Credentials, AuthError};
 use crate::session_state::TypedSession;
-use crate::utils::{see_other, error_chain_fmt};
-use std::fmt::Write;
+use crate::utils::{see_other, error_chain_fmt, e500, ResultValidateExt};
+use validator::{Validate, ValidationError};
 
+
+#[derive(TemplateOnce)]
+#[template(path = "login.stpl")]
+struct LoginPage<'a> {
+    pub messages: Vec<&'a str>,
+}
+
+#[get("/login")]
+pub async fn view_login(flash_messages: IncomingFlashMessages) -> Result<impl Responder, actix_web::Error> {
+    let messages: Vec<&str> = flash_messages.iter().map(|f| f.content()).collect();
+
+    let body = LoginPage {
+        messages: messages,
+    }
+    .render_once()
+    .map_err(e500)?;
+    
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(body))       
+}
+
+// Just for testing, you probably wouldn't
+// to validate login credentials
+#[derive(Validate, serde::Deserialize)]
+pub struct LoginForm {
+    #[validate(length(min = 1))]
+    username: String,
+    #[validate(length(min = 8))]
+    password: String,
+}
 
 #[derive(thiserror::Error)]
 pub enum LoginError {
@@ -30,35 +62,6 @@ fn login_redirect(e: LoginError) -> InternalError<LoginError> {
     InternalError::from_response(e, see_other("/login"))
 }
 
-#[get("/login")]
-pub async fn view_login(flash_messages: IncomingFlashMessages) -> impl Responder {
-    let mut error_html = String::new();
-    for m in flash_messages.iter() {
-        writeln!(error_html, "<p><i>{}</i></p>", m.content()).unwrap();
-    }
-
-    let body = format!(
-        r#"<!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta http-equiv="content-type" content="text/html; charset=utf-8">
-                <title>Login</title>
-            </head>
-            <body>
-                {error_html}
-                <form action="/login" method="post">  
-                    <label>Test login form</label>     
-                    <button type="submit">Login</button>
-                </form>
-            </body>
-        </html>"#
-    );
-
-    HttpResponse::Ok()
-        .content_type(ContentType::html())
-        .body(body)        
-}
-
 #[tracing::instrument(
     name = "login",
     skip_all,
@@ -67,12 +70,23 @@ pub async fn view_login(flash_messages: IncomingFlashMessages) -> impl Responder
 #[post("/login")]
 pub async fn post_login (
     db: web::Data<DbConn>,
+    form_data: web::Form<LoginForm>,
     session: TypedSession,
 ) -> Result<impl Responder, InternalError<LoginError>> {
-    // Just login as admin for testing auth
+    let form_data = form_data.into_inner();
+    // "everythinghastostartsomewhere"
+    let formres = form_data.validate();
+    if formres.is_field_valid("username") == false {
+        FlashMessage::info("Username must not be empty").send();
+    }
+
+    if formres.is_field_valid("password") == false {
+        FlashMessage::info("Password must be atleast 8 charcters").send();
+    }
+
     let credentials = Credentials {
-        username: "admin".to_string(),
-        password: Secret::new("everythinghastostartsomewhere".to_string())
+        username: form_data.username,
+        password: form_data.password.into(),
     };
 
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
