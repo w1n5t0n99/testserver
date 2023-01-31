@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use actix_multipart::{Multipart, Field};
+use actix_web::http::header::DispositionType;
 use futures::TryStreamExt;
 use mime::Mime;
 
@@ -9,8 +10,10 @@ use crate::utils::error_chain_fmt;
 
 #[derive(thiserror::Error)]
 pub enum FileSystemError {
+    #[error("Error parsing multipart form")]
+    Multipart(#[source] anyhow::Error),
     #[error("Something went wrong")]
-    UnexpectedError(#[from] anyhow::Error),
+    Unexpected(#[from] anyhow::Error),
 }
 
 impl std::fmt::Debug for FileSystemError {
@@ -24,22 +27,43 @@ impl std::fmt::Debug for FileSystemError {
     uploaded and saved to tmp file on server
 */
 pub struct UploadPayload {
-    data: Vec<u8>,
-    filename: String,
-    file_hash: blake3::Hash,
-    tmp_path: PathBuf,
-    mime: Mime,
+    pub data: Vec<u8>,
+    pub filename: String,
+    pub file_hash: blake3::Hash,
+    pub tmp_path: PathBuf,
+    pub mime: Mime,
 }
 
-pub async fn put_file(mut mutipart: Multipart) -> Result<(), FileSystemError> {
-    // see: https://users.rust-lang.org/t/file-upload-in-actix-web/64871/3
+pub struct FieldMeta {
+    pub name: String,
+    pub filename: String,
+    pub disp_type: String,
+}
 
+pub async fn parse_multipart_form(mut mutipart: Multipart) -> Result<Vec<FieldMeta>, FileSystemError> {
+    // see: https://users.rust-lang.org/t/file-upload-in-actix-web/64871/3
+    let mut fields_vec = Vec::new();
     // Iterate over multipart stream
     while let Ok(Some(mut field)) = mutipart.try_next().await {
+        let cdispostion = field.content_disposition();
+        let ctype = field.content_type();
+        let disp_type = match cdispostion.disposition {
+            DispositionType::Inline => "inline".to_string(),
+            DispositionType::FormData => "form data".to_string(),
+            DispositionType::Attachment => "attachment".to_string(),
+            DispositionType::Ext(_) => "ext".to_string(),
+        };
         
+        let fmeta = FieldMeta {
+            name: cdispostion.get_name().unwrap_or("none").to_owned(),
+            filename: cdispostion.get_filename().unwrap_or("none").to_owned(),
+            disp_type: disp_type,
+        };
+
+        fields_vec.push(fmeta);
     }
 
-    Ok(())
+    Ok(fields_vec)
 }
 
 // Direct way of converting an actix_multipart field into an upload response.

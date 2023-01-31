@@ -98,6 +98,8 @@ fn init(cfg: &mut web::ServiceConfig) {
             .service(assets::assets)
             .service(assets::add_asset)
             .service(logout::log_out)
+            .service(upload::uploads)
+            .service(upload::new_upload)
         );
 
     cfg.service(health_check::health_check);
