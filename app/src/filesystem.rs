@@ -38,6 +38,7 @@ pub struct FieldMeta {
     pub name: String,
     pub filename: String,
     pub disp_type: String,
+    pub content_type: String,
 }
 
 pub async fn parse_multipart_form(mut mutipart: Multipart) -> Result<Vec<FieldMeta>, FileSystemError> {
@@ -46,18 +47,28 @@ pub async fn parse_multipart_form(mut mutipart: Multipart) -> Result<Vec<FieldMe
     // Iterate over multipart stream
     while let Ok(Some(mut field)) = mutipart.try_next().await {
         let cdispostion = field.content_disposition();
-        let ctype = field.content_type();
+        let ctype = match field.content_type() {
+            Some(c) => {
+                format!("{}//{}", c.type_(), c.subtype())
+            }
+            None => "none".to_string(),
+        };
+
         let disp_type = match cdispostion.disposition {
             DispositionType::Inline => "inline".to_string(),
             DispositionType::FormData => "form data".to_string(),
             DispositionType::Attachment => "attachment".to_string(),
             DispositionType::Ext(_) => "ext".to_string(),
         };
+
+        
+        
         
         let fmeta = FieldMeta {
             name: cdispostion.get_name().unwrap_or("none").to_owned(),
             filename: cdispostion.get_filename().unwrap_or("none").to_owned(),
             disp_type: disp_type,
+            content_type: ctype,
         };
 
         fields_vec.push(fmeta);

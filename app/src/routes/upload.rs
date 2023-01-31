@@ -59,7 +59,7 @@ pub async fn new_upload(mut payload: Multipart) -> Result<HttpResponse, Internal
         .map_err(|e| InternalError::from_response(e.into(), see_other("/web/uploads")))?;
 
     for fm in fields_meta {
-        let msg = format!("name: {} | filename: {} | type: {}", fm.name, fm.filename, fm.disp_type);
+        let msg = format!("name: {} | filename: {} | disposition type: {} | content type: {}", fm.name, fm.filename, fm.disp_type, fm.content_type);
         FlashMessage::error(msg).send();
     }        
     
