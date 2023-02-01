@@ -3,12 +3,11 @@ use actix_web::error::InternalError;
 use actix_web::{get, Responder, HttpResponse, http::header::ContentType, post};
 use actix_web_flash_messages::{IncomingFlashMessages, FlashMessage};
 use actix_web_grants::proc_macro::has_permissions;
-use futures::TryFutureExt;
 use sailfish::TemplateOnce;
 use anyhow::Context;
 
 use crate::utils::{e500, error_chain_fmt, see_other};
-use crate::filesystem::{FieldMeta, FileSystemError, parse_multipart_form, process_multipart_fields, UploadPayload, NonfilePayload, FilePayload};
+use crate::filesystem::{FileSystemError, process_multipart_fields, UploadPayload, NonfilePayload, FilePayload};
 
 
 #[derive(TemplateOnce)]

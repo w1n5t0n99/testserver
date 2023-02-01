@@ -1,12 +1,13 @@
-use std::{path::PathBuf, collections::HashMap};
+use std::{path::{PathBuf, Path}, collections::HashMap, fs::File};
 use actix_multipart::{Multipart, Field};
-use actix_web::http::header::DispositionType;
+use actix_web::{http::header::DispositionType, web::to};
 use blake3::Hash;
 use futures::{TryStreamExt, StreamExt};
 use mime::Mime;
 use anyhow::{anyhow, bail, Context};
+use std::io::Write;
 
-use crate::utils::error_chain_fmt;
+use crate::utils::{error_chain_fmt, spawn_blocking_with_tracing};
 
 
 
@@ -43,56 +44,6 @@ pub struct FilePayload {
 pub struct NonfilePayload {
     pub data: Vec<u8>,
     pub text: String,
-}
-
-pub struct FieldMeta {
-    pub name: String,
-    pub filename: String,
-    pub disp_type: String,
-    pub content_type: String,
-}
-
-pub async fn parse_multipart_form(mut mutipart: Multipart) -> Result<Vec<FieldMeta>, FileSystemError> {
-    // see: https://users.rust-lang.org/t/file-upload-in-actix-web/64871/3
-    let mut fields_vec = Vec::new();
-    // Iterate over multipart stream
-    while let Ok(Some(mut field)) = mutipart.try_next().await {
-        let cdispostion = field.content_disposition();
-        let ctype = match field.content_type() {
-            Some(c) => {
-                format!("{}//{}", c.type_(), c.subtype())
-            }
-            None => "none".to_string(),
-        };
-
-        let disp_type = match cdispostion.disposition {
-            DispositionType::Inline => "inline".to_string(),
-            DispositionType::FormData => "form data".to_string(),
-            DispositionType::Attachment => "attachment".to_string(),
-            DispositionType::Ext(_) => "ext".to_string(),
-        };
-
-        
-        
-        
-        let fmeta = FieldMeta {
-            name: cdispostion.get_name().unwrap_or("none").to_owned(),
-            filename: cdispostion.get_filename().unwrap_or("none").to_owned(),
-            disp_type: disp_type,
-            content_type: ctype,
-        };
-
-        fields_vec.push(fmeta);
-    }
-
-    Ok(fields_vec)
-}
-
-// Direct way of converting an actix_multipart field into an upload response.
-pub async fn insert_field_as_attachment(field: &mut Field) -> Result<(), FileSystemError> {
-    // Save the file to a temporary location and get payload data.
-    // Pass file through deduplication and receive a response..
-    Ok(())
 }
 
 pub async fn process_multipart_fields(mut mutipart: Multipart) -> Result<HashMap<String, UploadPayload>, FileSystemError> {
@@ -162,11 +113,13 @@ async fn process_file_field( field: &mut Field) -> Result<Option<FilePayload>, F
         .map_err(|e| FileSystemError::Payload(e))?
         .clone();
 
-    let ext = new_mime_guess::get_mime_extensions_str(mime.type_().as_str())
-        .context("field ext not found")
-        .map_err(|e| FileSystemError::Payload(e))?;
+    let ext = match mime2ext::mime2ext(&mime)
+    {
+        Some(ext) => ext,
+        None => return Ok(None),
+    };
 
-    let tmp_path = format!("./tempfiles/{}.{}", uuid::Uuid::new_v4(), ext[0]);
+    let tmp_path = format!("./app/tempfiles/{}.{}", uuid::Uuid::new_v4(), ext);
 
     let mut hasher = blake3::Hasher::new();
     let mut data: Vec<u8> = Vec::with_capacity(1024);
@@ -181,12 +134,36 @@ async fn process_file_field( field: &mut Field) -> Result<Option<FilePayload>, F
         return Ok(None);
     }
 
-    Ok(Some(FilePayload { 
-            data: data,
-            filename: filename.to_string(),
-            hash: hasher.finalize(),
-            tmp_path: tmp_path.into(),
-            mime: mime 
-        } 
-    ))
+    let payload = FilePayload { 
+        data: data,
+        filename: filename.to_string(),
+        hash: hasher.finalize(),
+        tmp_path: tmp_path.into(),
+        mime: mime 
+    };
+
+    save_payload_to_temp_file(&payload).await?;
+
+    Ok(Some(payload))
+}
+
+async fn save_payload_to_temp_file(payload: &FilePayload) -> Result<(), FileSystemError> {
+    // create temporary file
+    let tmp_path = payload.tmp_path.clone();
+    let mut f = spawn_blocking_with_tracing(move || {
+        File::create(tmp_path)
+    })
+    .await
+    .context("Blocking thread error")?
+    .context("Could not create tmp file")?;
+    
+    // filesystem operations are blocking
+    let data = payload.data.clone();
+    spawn_blocking_with_tracing(move|| f.write_all(&data))
+        .await
+        .context("Blocking thread error")?
+        .context("Could write data to tmp file")?;
+    
+
+    Ok(())
 }
