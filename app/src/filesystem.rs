@@ -1,8 +1,10 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, collections::HashMap};
 use actix_multipart::{Multipart, Field};
 use actix_web::http::header::DispositionType;
-use futures::TryStreamExt;
+use blake3::Hash;
+use futures::{TryStreamExt, StreamExt};
 use mime::Mime;
+use anyhow::{anyhow, bail, Context};
 
 use crate::utils::error_chain_fmt;
 
@@ -10,8 +12,8 @@ use crate::utils::error_chain_fmt;
 
 #[derive(thiserror::Error)]
 pub enum FileSystemError {
-    #[error("Error parsing multipart form")]
-    Multipart(#[source] anyhow::Error),
+    #[error("Error processing payload")]
+    Payload(#[source] anyhow::Error),
     #[error("Something went wrong")]
     Unexpected(#[from] anyhow::Error),
 }
@@ -22,16 +24,25 @@ impl std::fmt::Debug for FileSystemError {
     }
 }
 
-/* 
-    Represents a single multipart file field that was
-    uploaded and saved to tmp file on server
-*/
-pub struct UploadPayload {
+#[derive(Clone)]
+pub enum UploadPayload {
+    File(FilePayload),
+    Nonfile(NonfilePayload),
+}
+
+#[derive(Clone)]
+pub struct FilePayload {
     pub data: Vec<u8>,
     pub filename: String,
-    pub file_hash: blake3::Hash,
+    pub hash: blake3::Hash,
     pub tmp_path: PathBuf,
     pub mime: Mime,
+}
+
+#[derive(Clone)]
+pub struct NonfilePayload {
+    pub data: Vec<u8>,
+    pub text: String,
 }
 
 pub struct FieldMeta {
@@ -82,4 +93,100 @@ pub async fn insert_field_as_attachment(field: &mut Field) -> Result<(), FileSys
     // Save the file to a temporary location and get payload data.
     // Pass file through deduplication and receive a response..
     Ok(())
+}
+
+pub async fn process_multipart_fields(mut mutipart: Multipart) -> Result<HashMap<String, UploadPayload>, FileSystemError> {
+    let mut payload_map = HashMap::new();
+
+    while let Ok(Some(mut field)) = mutipart.try_next().await {
+        let name = field.content_disposition()
+            .get_name()
+            .context("Field name not found")
+            .map_err(|e| FileSystemError::Payload(anyhow!(e)))?
+            .to_string();
+
+        let mime = field.content_type();
+        match mime {
+            None => {
+                let f = process_nonfile_field(&mut field).await?;
+                match f {
+                    Some(f) => { payload_map.insert(name, UploadPayload::Nonfile(f)); }
+                    None => { }
+                }
+            }
+            Some(_) => {
+                let f = process_file_field(&mut field).await?;
+                match f {
+                    Some(f) => { payload_map.insert(name, UploadPayload::File(f)); }
+                    None => { }
+                }
+            }
+        }
+    }
+
+    Ok(payload_map)
+}
+
+async fn process_nonfile_field(field: &mut Field) -> Result<Option<NonfilePayload>, FileSystemError> {
+
+    let mut data: Vec<u8> = Vec::with_capacity(1024);
+    while let Some(chunk) = field.next().await {
+        let byte = chunk.map_err(|e| FileSystemError::Payload(anyhow!(e)))?;
+        data.extend(byte.to_owned());
+    }
+
+    if data.is_empty() {
+        return Ok(None);
+    }
+
+    let text = match std::str::from_utf8(&data) {
+        Ok(text) => text.to_string(),
+        Err(e) => { return Ok(None); }
+    };
+
+    Ok(Some(NonfilePayload { data, text } ))
+}
+
+async fn process_file_field( field: &mut Field) -> Result<Option<FilePayload>, FileSystemError> {
+
+    let filename = field
+        .content_disposition()
+        .get_filename()
+        .context("field missing filename")
+        .map_err(|e| FileSystemError::Payload(e))?
+        .to_string();
+
+    let mime = field
+        .content_type()
+        .context("field mime not found")
+        .map_err(|e| FileSystemError::Payload(e))?
+        .clone();
+
+    let ext = new_mime_guess::get_mime_extensions_str(mime.type_().as_str())
+        .context("field ext not found")
+        .map_err(|e| FileSystemError::Payload(e))?;
+
+    let tmp_path = format!("./tempfiles/{}.{}", uuid::Uuid::new_v4(), ext[0]);
+
+    let mut hasher = blake3::Hasher::new();
+    let mut data: Vec<u8> = Vec::with_capacity(1024);
+    while let Some(chunk) = field.next().await {
+        let bytes = chunk.map_err(|e| FileSystemError::Payload(anyhow!(e)))?;
+
+        hasher.update(&bytes);
+        data.extend(bytes.to_owned());
+    }
+
+    if data.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(FilePayload { 
+            data: data,
+            filename: filename.to_string(),
+            hash: hasher.finalize(),
+            tmp_path: tmp_path.into(),
+            mime: mime 
+        } 
+    ))
 }

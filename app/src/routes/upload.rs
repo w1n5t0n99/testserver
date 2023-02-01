@@ -8,7 +8,7 @@ use sailfish::TemplateOnce;
 use anyhow::Context;
 
 use crate::utils::{e500, error_chain_fmt, see_other};
-use crate::filesystem::{FieldMeta, FileSystemError, parse_multipart_form};
+use crate::filesystem::{FieldMeta, FileSystemError, parse_multipart_form, process_multipart_fields, UploadPayload, NonfilePayload, FilePayload};
 
 
 #[derive(TemplateOnce)]
@@ -53,15 +53,42 @@ impl std::fmt::Debug for UploadError {
 #[has_permissions("admin")]
 #[post("/uploads/new")]
 pub async fn new_upload(mut payload: Multipart) -> Result<HttpResponse, InternalError<UploadError>> {
-    let fields_meta = parse_multipart_form(payload)
+    let field_map = process_multipart_fields(payload)
         .await
-        .context("Upload error")
+        .context("Multipart processing error")
         .map_err(|e| InternalError::from_response(e.into(), see_other("/web/uploads")))?;
 
-    for fm in fields_meta {
-        let msg = format!("name: {} | filename: {} | disposition type: {} | content type: {}", fm.name, fm.filename, fm.disp_type, fm.content_type);
-        FlashMessage::error(msg).send();
-    }        
+    let text_field = field_map.get("text-field");
+    match text_field {
+        Some(text_field) => {
+            match text_field {
+                UploadPayload::Nonfile(f) => {
+                    let msg = format!("name: text-field | text: {}", f.text);
+                    FlashMessage::error(msg).send();
+                }
+                UploadPayload::File(_) => { }
+            }
+        }
+        None => {
+            FlashMessage::error("text-file field not processed").send();
+         }
+    }
+
+    let file_field = field_map.get("file-field");
+    match file_field {
+        Some(file_field) => {
+            match file_field {
+                UploadPayload::Nonfile(_) => { }
+                UploadPayload::File(f) => {
+                    let msg = format!("name: file-field | filename: {} | tmp_path: {}", f.filename, f.tmp_path.to_string_lossy());
+                    FlashMessage::error(msg).send();
+                 }
+            }
+        }
+        None => {
+            FlashMessage::error("field-file field not processed").send();
+         }
+    }  
     
     Ok(see_other("/web/uploads"))   
 }
