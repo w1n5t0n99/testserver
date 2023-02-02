@@ -1,10 +1,8 @@
-use std::{path::{PathBuf, Path}, collections::HashMap, fs::File};
+use std::{path::PathBuf, collections::HashMap, fs::File};
 use actix_multipart::{Multipart, Field};
-use actix_web::{http::header::DispositionType, web::to};
-use blake3::Hash;
 use futures::{TryStreamExt, StreamExt};
 use mime::Mime;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, Context};
 use std::io::Write;
 
 use crate::utils::{error_chain_fmt, spawn_blocking_with_tracing};
@@ -78,6 +76,8 @@ pub async fn process_multipart_fields(mut mutipart: Multipart) -> Result<HashMap
     Ok(payload_map)
 }
 
+// If the text field parsing fails returns Error
+// If the field is empty or can't be converted to valid utf8 return None
 async fn process_nonfile_field(field: &mut Field) -> Result<Option<NonfilePayload>, FileSystemError> {
 
     let mut data: Vec<u8> = Vec::with_capacity(1024);
@@ -98,6 +98,8 @@ async fn process_nonfile_field(field: &mut Field) -> Result<Option<NonfilePayloa
     Ok(Some(NonfilePayload { data, text } ))
 }
 
+// If the file field parsing fails returns Error
+// If the field is empty return None
 async fn process_file_field( field: &mut Field) -> Result<Option<FilePayload>, FileSystemError> {
 
     let filename = field
@@ -113,11 +115,9 @@ async fn process_file_field( field: &mut Field) -> Result<Option<FilePayload>, F
         .map_err(|e| FileSystemError::Payload(e))?
         .clone();
 
-    let ext = match mime2ext::mime2ext(&mime)
-    {
-        Some(ext) => ext,
-        None => return Ok(None),
-    };
+    let ext = mime2ext::mime2ext(&mime)
+        .context("Could not guess fiel field ext")
+        .map_err(|e| FileSystemError::Payload(e))?;
 
     let tmp_path = format!("./app/tempfiles/{}.{}", uuid::Uuid::new_v4(), ext);
 

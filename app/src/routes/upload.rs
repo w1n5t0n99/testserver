@@ -1,13 +1,16 @@
 use actix_multipart::Multipart;
 use actix_web::error::InternalError;
+use actix_web::web;
 use actix_web::{get, Responder, HttpResponse, http::header::ContentType, post};
 use actix_web_flash_messages::{IncomingFlashMessages, FlashMessage};
 use actix_web_grants::proc_macro::has_permissions;
 use sailfish::TemplateOnce;
 use anyhow::Context;
+use sea_orm::DbConn;
 
 use crate::utils::{e500, error_chain_fmt, see_other};
 use crate::filesystem::{FileSystemError, process_multipart_fields, UploadPayload, NonfilePayload, FilePayload};
+use crate::db::insert_assets_from_payload;
 
 
 #[derive(TemplateOnce)]
@@ -51,7 +54,7 @@ impl std::fmt::Debug for UploadError {
 #[tracing::instrument( name = "New Upload", skip_all)]
 #[has_permissions("admin")]
 #[post("/uploads/new")]
-pub async fn new_upload(mut payload: Multipart) -> Result<HttpResponse, InternalError<UploadError>> {
+pub async fn new_upload(mut payload: Multipart, db: web::Data<DbConn>) -> Result<HttpResponse, InternalError<UploadError>> {
     let field_map = process_multipart_fields(payload)
         .await
         .context("Multipart processing error")
@@ -81,6 +84,13 @@ pub async fn new_upload(mut payload: Multipart) -> Result<HttpResponse, Internal
                 UploadPayload::File(f) => {
                     let msg = format!("name: file-field | filename: {} | tmp_path: {}", f.filename, f.tmp_path.to_string_lossy());
                     FlashMessage::error(msg).send();
+
+                    let bulk = insert_assets_from_payload(f, &db)
+                        .await
+                        .context("Bulk insert error")
+                        .map_err(|e| InternalError::from_response(e.into(), see_other("/web/uploads")))?;
+                    
+                    FlashMessage::error(format!("total: {} inserted: {} skipped: {}", bulk.total, bulk.inserted, bulk.skipped)).send();
                  }
             }
         }
