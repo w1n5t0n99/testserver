@@ -31,6 +31,12 @@ pub async fn assets(
     let assets = find_all_assets(&db)
         .await
         .map_err(e500)?;
+
+    let testuser = find_test_user_info("admin", &db)
+        .await
+        .map_err(e500)?;
+
+    FlashMessage::error(testuser.to_string()).send();
         
     let client = client.into_inner();
 

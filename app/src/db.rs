@@ -1,7 +1,7 @@
 use anyhow::Context;
 use sea_orm::*;
-use ::entity::{asset, user, role};
-use ::entity::prelude::{Asset, User, Role};
+use ::entity::{asset, user, role, test_role, test_user};
+use ::entity::prelude::{Asset, User, Role, TestRole, TestUser};
 use ::entity::entity_linked;
 use secrecy::{Secret, ExposeSecret};
 use serde::Deserialize;
@@ -138,4 +138,26 @@ pub async fn insert_assets_from_payload(payload: &FilePayload, db: &DbConn) -> R
             .context("tmp file delete error")?;
 
     Ok(BulkInsert { total, inserted, skipped })
+}
+
+pub async fn find_test_user_info(name: &str, db: &DbConn) -> Result<String, DbErr> {
+    let role = TestUser::find()
+        .filter(test_user::Column::Name.eq(name))
+        .find_also_related(TestRole)
+        .one(db)
+        .await?;
+
+    let msg = match role {
+        None => "No TestUser found".to_string(),
+        Some((user, role)) => {
+            let role_name = match role {
+                None => "No TestRole found".to_string(),
+                Some(role) => format!("Role[ name: {} | description: {} ]", role.name, role.description)
+            };
+
+            format!("User[ name: {}] {}", user.name, role_name)            
+        }
+    };
+
+    Ok(msg)
 }

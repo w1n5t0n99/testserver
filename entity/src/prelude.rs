@@ -2,5 +2,7 @@
 
 pub use super::asset::Entity as Asset;
 pub use super::role::Entity as Role;
+pub use super::test_role::Entity as TestRole;
+pub use super::test_user::Entity as TestUser;
 pub use super::user::Entity as User;
 pub use super::user_roles::Entity as UserRoles;
