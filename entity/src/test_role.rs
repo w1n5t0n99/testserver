@@ -24,4 +24,13 @@ impl Related<super::test_user::Entity> for Entity {
     }
 }
 
+impl Related<super::permissions::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::roles_permissions::Relation::Permissions.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::roles_permissions::Relation::TestRole.def().rev())
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}

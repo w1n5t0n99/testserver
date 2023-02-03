@@ -1,7 +1,7 @@
 use anyhow::Context;
 use sea_orm::*;
-use ::entity::{asset, user, role, test_role, test_user};
-use ::entity::prelude::{Asset, User, Role, TestRole, TestUser};
+use ::entity::{asset, user, role, test_role, test_user, permissions, roles_permissions};
+use ::entity::prelude::{Asset, User, Role, TestRole, TestUser, Permissions, RolesPermissions};
 use ::entity::entity_linked;
 use secrecy::{Secret, ExposeSecret};
 use serde::Deserialize;
@@ -147,6 +147,25 @@ pub async fn find_test_user_info(name: &str, db: &DbConn) -> Result<String, DbEr
         .one(db)
         .await?;
 
+    let mut perms_msg = "".to_string();
+    if let Some((_, Some(role))) = &role {
+        let perms = TestRole::find_by_id(role.id)
+            .find_also_related(Permissions)
+            .all(db)
+            .await?;
+
+        let permissions: Vec<String> = perms.iter()
+            .filter_map(|(role, perm)| 
+                match perm {
+                    Some(perm) => Some(perm.name.clone()),
+                    None => None,            
+                }
+            )
+            .collect();
+
+        perms_msg = permissions.join(" - ");
+    }
+
     let msg = match role {
         None => "No TestUser found".to_string(),
         Some((user, role)) => {
@@ -155,7 +174,7 @@ pub async fn find_test_user_info(name: &str, db: &DbConn) -> Result<String, DbEr
                 Some(role) => format!("Role[ name: {} | description: {} ]", role.name, role.description)
             };
 
-            format!("User[ name: {}] {}", user.name, role_name)            
+            format!("User[ name: {}] {} [Perms: {} ]", user.name, role_name, perms_msg)            
         }
     };
 

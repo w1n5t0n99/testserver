@@ -11,6 +11,10 @@ mod m20230122_190717_admin_roles_seed;
 mod m20230203_085353_add_test_roles;
 mod m20230203_092546_add_test_users;
 mod m20230203_102343_seed_test_user;
+mod m20230203_142254_create_perms_table;
+mod m20230203_143026_seed_perms_table;
+mod m20230203_143748_create_roles_perms_table;
+mod m20230203_144757_seed_roles_perms_table;
 
 pub struct Migrator;
 
@@ -29,6 +33,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20230203_085353_add_test_roles::Migration),
             Box::new(m20230203_092546_add_test_users::Migration),
             Box::new(m20230203_102343_seed_test_user::Migration),
+            Box::new(m20230203_142254_create_perms_table::Migration),
+            Box::new(m20230203_143026_seed_perms_table::Migration),
+            Box::new(m20230203_143748_create_roles_perms_table::Migration),
+            Box::new(m20230203_144757_seed_roles_perms_table::Migration),
         ]
     }
 }
