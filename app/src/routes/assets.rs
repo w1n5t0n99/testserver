@@ -32,11 +32,15 @@ pub async fn assets(
         .await
         .map_err(e500)?;
 
-    let testadmin = find_test_user_info("admin", &db)
+    let testadmin = find_test_user_info_only("admin", &db)
         .await
         .map_err(e500)?;
 
-    FlashMessage::error(testadmin.to_string()).send();
+    let perms = find_test_user_info_only("admin", &db)
+        .await
+        .map_err(e500)?;
+
+    FlashMessage::error(perms.to_string()).send();
         
     let client = client.into_inner();
 

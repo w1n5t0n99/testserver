@@ -2,9 +2,10 @@ use anyhow::Context;
 use sea_orm::*;
 use ::entity::{asset, user, role, test_role, test_user, permissions, roles_permissions};
 use ::entity::prelude::{Asset, User, Role, TestRole, TestUser, Permissions, RolesPermissions};
-use ::entity::entity_linked;
+use ::entity::entity_linked::{self, UserToRole};
 use secrecy::{Secret, ExposeSecret};
 use serde::Deserialize;
+use sea_query::{*, tests_cfg::*};
 
 use crate::filesystem::FilePayload;
 use crate::utils::{error_chain_fmt, spawn_blocking_with_tracing};
@@ -141,6 +142,7 @@ pub async fn insert_assets_from_payload(payload: &FilePayload, db: &DbConn) -> R
 }
 
 pub async fn find_test_user_info(name: &str, db: &DbConn) -> Result<String, DbErr> {
+
     let role = TestUser::find()
         .filter(test_user::Column::Name.eq(name))
         .find_also_related(TestRole)
@@ -179,4 +181,45 @@ pub async fn find_test_user_info(name: &str, db: &DbConn) -> Result<String, DbEr
     };
 
     Ok(msg)
+}
+
+pub async fn find_test_user_info_only(name: &str, db: &DbConn) -> Result<String, DbErr> {
+
+    let user = TestUser::find()
+        .filter(test_user::Column::Name.eq(name))
+        .one(db)
+        .await?
+        .unwrap();
+
+    if user.role_id.is_none() {
+        return Ok("No permissions for User".to_string());
+    }
+
+    let perms = Permissions::find()
+        .join_rev(
+            JoinType::InnerJoin,
+            roles_permissions::Entity::belongs_to(permissions::Entity)
+                .from(roles_permissions::Column::PermId)
+                .to(permissions::Column::Name)
+                .into()
+        )
+        .filter(Condition::any().add(
+            roles_permissions::Column::RoleId.in_subquery(
+                Query::select()
+                        .column(test_role::Column::Id)
+                        .from(test_role::Entity)
+                        .cond_where(test_role::Column::Id.eq(user.role_id.unwrap()))
+                        .to_owned()
+                )
+            )
+        )
+        //.build(DatabaseBackend::Postgres)
+        //.to_string();
+        .all(db)
+        .await?;
+
+    let perms_string = perms.iter().map(|p| p.name.to_owned()).collect();
+
+
+    Ok(perms_string)
 }
