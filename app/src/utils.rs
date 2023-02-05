@@ -66,12 +66,12 @@ impl ValidationErrorsExt for ValidationErrors
 }
 
 pub trait DbErrbExt {
-    fn is_duplicate_key(&self) -> bool;
+    fn is_unique_key_constraint(&self) -> bool;
+    fn is_foreign_key_constraint(&self) -> bool;
 }
 
-// TODO: I think need to include sqlx to access error type
 impl DbErrbExt for DbErr {
-    fn is_duplicate_key(&self) -> bool {
+    fn is_unique_key_constraint(&self) -> bool {
         const SQLITE_CODE: &'static str = "2067";
         const POSTGRES_CODE: &'static str = "23505";
 
@@ -90,4 +90,25 @@ impl DbErrbExt for DbErr {
             _ => false,
         }
     }
+
+    fn is_foreign_key_constraint(&self) -> bool {
+        const SQLITE_CODE: &'static str = "787";
+        const POSTGRES_CODE: &'static str = "23503";
+
+        match self {
+            DbErr::Exec(RuntimeErr::SqlxError(error)) => match error {
+                sqlx::Error::Database(e) => {
+                    if let Some(code) = e.code() {
+                        if code == SQLITE_CODE || code == POSTGRES_CODE {
+                            return true;
+                        }
+                    }
+                    false
+                }
+                _ => false,
+            } 
+            _ => false,
+        }
+    }
 }
+

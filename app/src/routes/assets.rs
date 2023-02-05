@@ -88,7 +88,7 @@ pub async fn add_asset(asset_model: web::Form<entity::asset::Model>, db: web::Da
     let res = insert_asset(asset_model, &db)
         .await
         .map_err(|e| {
-            if e.is_duplicate_key() { AddError::DuplicateKey(e.into()) }
+            if e.is_unique_key_constraint() { AddError::DuplicateKey(e.into()) }
             else { AddError::UnexpectedError(e.into()) }
         });
 
