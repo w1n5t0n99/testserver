@@ -100,6 +100,7 @@ fn init(cfg: &mut web::ServiceConfig) {
             .service(logout::log_out)
             .service(upload::uploads)
             .service(upload::new_upload)
+            .service(list::list)
         );
 
     cfg.service(health_check::health_check);
