@@ -1,36 +1,87 @@
-<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
-    <meta name="generator" content="Hugo 0.84.0">
-    <title>List template · Bootstrap v5.0</title>
+<style>
+  body {
+    padding-top: 105px;
+  }
+</style>
 
-    <!-- Bootstrap core CSS -->
-    <!-- <link href="../assets/dist/css/bootstrap.min.css" rel="stylesheet"> -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<head>
+  <title>List</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
 
-    <style>
-    .bd-placeholder-img {
-        font-size: 1.125rem;
-        text-anchor: middle;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        user-select: none;
-    }
+<body>
+  <nav class="navbar navbar-expand-md bg-light navbar-light shadow-sm fixed-top mt-5">
+    <div class="container-fluid">
+      <a href="#" class="navbar-brand">Asset Items</a>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#searchbar">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="navbar-collapse collapse" id="searchbar">
+        <form class="d-flex me-2 pt-2">
+          <select class="form-select me-2" id="sel1" name="sellist1">
+            <option>All</option>
+            <option>Assets</option>
+            <option>Serial #</option>
+            <option>Model</option>
+          </select>
+          <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+          <button class="btn btn-outline-success" type="submit">Search</button>
+        </form>
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a href="#" class="nav-link">Add</a></li>
+          <li class="nav-item"><a href="#" class="nav-link">Upload</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
-    @media (min-width: 768px) {
-        .bd-placeholder-img-lg {
-        font-size: 3.5rem;
-        }
-    }
-    </style>
-  </head>
-  <body class="bg-light">
-    <% include!("./nav-bar.stpl"); %>
-    <% include!("./search-bar.stpl"); %>
-  </body>
+  <!-- 
+dark
+-->
+  <nav class="navbar navbar-dark bg-dark navbar-expand-md fixed-top">
+    <a href="#" class="navbar-brand">RCPS Assets</a>
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a href="#" class="nav-link">Asset-Items</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">User-Items</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div class="container-fluid py-3">
+    <h2>Content here..</h2>
+    <p>Sriracha biodiesel taxidermy organic post-ironic, Intelligentsia salvia mustache 90's code editing brunch. Butcher polaroid VHS art party, hashtag Brooklyn deep v PBR narwhal sustainable mixtape
+      swag wolf squid tote bag. Tote bag cronut semiotics, raw denim deep v taxidermy messenger bag. Tofu YOLO Etsy, direct trade
+      ethical Odd Future jean shorts paleo. Forage Shoreditch tousled aesthetic irony, street art organic Bushwick artisan cliche semiotics ugh
+      synth chillwave meditation. Shabby chic lomo plaid vinyl chambray Vice. Vice sustainable cardigan, Williamsburg master cleanse hella DIY 90's blog.</p>
+
+    <p>Ethical Kickstarter PBR
+      asymmetrical lo-fi. Dreamcatcher street art Carles, stumptown gluten-free Kickstarter artisan
+      Wes Anderson wolf pug. Godard sustainable you probably haven't heard of them, vegan farm-to-table Williamsburg slow-carb
+      readymade disrupt deep v. Meggings seitan Wes Anderson semiotics, cliche American Apparel whatever. Helvetica cray plaid, vegan brunch Banksy
+      leggings +1 direct trade. Wayfarers codeply PBR selfies. Banh mi McSweeney's Shoreditch selfies,
+      forage fingerstache food truck occupy YOLO Pitchfork fixie iPhone fanny pack art party Portland.</p>
+
+    <p>Ethical Kickstarter PBR
+      asymmetrical lo-fi. Dreamcatcher street art Carles, stumptown gluten-free Kickstarter artisan
+      Wes Anderson wolf pug. Godard sustainable you probably haven't heard of them, vegan farm-to-table Williamsburg slow-carb
+      readymade disrupt deep v. Meggings seitan Wes Anderson semiotics, cliche American Apparel whatever. Helvetica cray plaid, vegan brunch Banksy
+      leggings +1 direct trade. Wayfarers codeply PBR selfies. Banh mi McSweeney's Shoreditch selfies,
+      forage fingerstache food truck occupy YOLO Pitchfork fixie iPhone fanny pack art party Portland.</p>
+
+    <p>Ethical Kickstarter PBR
+      asymmetrical lo-fi. Dreamcatcher street art Carles, stumptown gluten-free Kickstarter artisan
+      Wes Anderson wolf pug. Godard sustainable you probably haven't heard of them, vegan farm-to-table Williamsburg slow-carb
+      readymade disrupt deep v. Meggings seitan Wes Anderson semiotics, cliche American Apparel whatever. Helvetica cray plaid, vegan brunch Banksy
+      leggings +1 direct trade. Wayfarers codeply PBR selfies. Banh mi McSweeney's Shoreditch selfies,
+      forage fingerstache food truck occupy YOLO Pitchfork fixie iPhone fanny pack art party Portland.</p>
+  </div>
+</body>
+
 </html>
