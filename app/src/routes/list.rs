@@ -4,7 +4,8 @@ use actix_web_grants::proc_macro::has_permissions;
 use sailfish::TemplateOnce;
 
 use crate::utils::e500;
-use crate::components::navbar::{NavBar, NavBarBuilder, Link};
+use crate::components::Link;
+use crate::components::navbar::{NavBar, NavBarBuilder};
 
 #[derive(TemplateOnce)]
 #[template(path = "list.stpl")]
@@ -21,10 +22,12 @@ pub async fn list(flash_messages: IncomingFlashMessages) -> Result<impl Responde
 
     let navbar = NavBarBuilder::default()
         .username("admin".to_string())
-        .email("admin.richmond-county.k12.va.us".to_string())
+        .email("admin@richmond-county.k12.va.us".to_string())
         .is_admin(true)
-        .add_link(Link::Active { name: "Asset-Items".into(), url: "/web/home".into() })
-        .add_link(Link::Active { name: "User-Items".into(), url: "/web/home".into() })
+        .add_link(Link::Active { name: "Asset-Items".into(), url: "/web/list".into() })
+        .add_link(Link::Normal { name: "User-Items".into(), url: "/web/home".into() })
+        .add_link(Link::Disabled { name: "Schools".into(), url: "/web/home".into() })
+        .add_link(Link::Disabled { name: "Rooms".into(), url: "/web/home".into() })
         .build()
         .map_err(e500)?;
 

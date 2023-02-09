@@ -1,13 +1,4 @@
-
-
-static NAV_LINKS: &'static [(&'static str, &'static str)] = &[("Asset-Items", "/"), ("User-Items", "/")];
-
-#[derive(Debug, Clone)]
-pub enum Link {
-    Active {name: String, url: String},
-    Disabled {name: String, url: String},
-    Normal {name: String, url: String},
-}
+use super::Link;
 
 #[derive(Debug, derive_builder::Builder)]
 #[builder(setter(into))]
@@ -19,4 +10,3 @@ pub struct NavBar {
     pub is_admin: bool,
 }
 
-// NavBar::from_client(client: &auth::Client, active_link: ActiveLink)
