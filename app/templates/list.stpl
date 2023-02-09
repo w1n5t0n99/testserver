@@ -14,46 +14,7 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-md bg-light navbar-light shadow-sm fixed-top mt-5">
-    <div class="container-fluid">
-      <a href="#" class="navbar-brand">Asset Items</a>
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#searchbar">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="navbar-collapse collapse" id="searchbar">
-        <form class="d-flex me-2 pt-2">
-          <select class="form-select me-2" id="sel1" name="sellist1">
-            <option>All</option>
-            <option>Assets</option>
-            <option>Serial #</option>
-            <option>Model</option>
-          </select>
-          <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-          <button class="btn btn-outline-success" type="submit">Search</button>
-        </form>
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item"><a href="#" class="nav-link">Add</a></li>
-          <li class="nav-item"><a href="#" class="nav-link">Upload</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <!-- 
-dark
--->
-  <nav class="navbar navbar-dark bg-dark navbar-expand-md fixed-top">
-    <a href="#" class="navbar-brand">RCPS Assets</a>
-    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="navbar-collapse collapse" id="navbar">
-      <ul class="navbar-nav">
-        <li class="nav-item"><a href="#" class="nav-link">Asset-Items</a></li>
-        <li class="nav-item"><a href="#" class="nav-link">User-Items</a></li>
-      </ul>
-    </div>
-  </nav>
+  <% include!("nav-bar.stpl"); %>
   <div class="container-fluid py-3">
     <h2>Content here..</h2>
     <p>Sriracha biodiesel taxidermy organic post-ironic, Intelligentsia salvia mustache 90's code editing brunch. Butcher polaroid VHS art party, hashtag Brooklyn deep v PBR narwhal sustainable mixtape
@@ -82,6 +43,7 @@ dark
       leggings +1 direct trade. Wayfarers codeply PBR selfies. Banh mi McSweeney's Shoreditch selfies,
       forage fingerstache food truck occupy YOLO Pitchfork fixie iPhone fanny pack art party Portland.</p>
   </div>
+
 </body>
 
 </html>
