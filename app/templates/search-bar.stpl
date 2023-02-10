@@ -1,20 +1,29 @@
-<nav class="navbar second-navbar fixed-top navbar-expand-sm navbar-light" style="background-color: #e3f2fd;">
-    <nav class="nav nav-underline" aria-label="Secondary navigation">
-      <a class="nav-link active" aria-current="page" href="#">Dashboard</a>
-      <a class="nav-link" href="#">
-        Friends
-        <span class="badge bg-light text-dark rounded-pill align-text-bottom">27</span>
-      </a>
-      <a class="nav-link" href="#">Explore</a>
-      <a class="nav-link" href="#">Suggestions</a>
-      <a class="nav-link" href="#">Link</a>
-      <a class="nav-link" href="#">Link</a>
-      <a class="nav-link" href="#">Link</a>
-      <a class="nav-link" href="#">Link</a>
-      <a class="nav-link" href="#">Link</a>
-      <form class="d-flex">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+<nav class="navbar navbar-expand-md bg-light navbar-light shadow-sm fixed-top mt-5 py-2">
+  <div class="container-fluid">
+    <label class="navbar-brand pt-2"><%= search_bar.title %></label>
+    <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#searchbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="navbar-collapse collapse" id="searchbar">
+      <form class="d-flex me-2 pt-2 w-100" action="<%= search_bar.form_url %>" method="get">
+        <% if let Some((selected_val, filter_vals)) = &search_bar.search_filter { %>
+        <select class="form-select me-2 w-25" id="searchfilter" name="filter">
+
+          <option>All</option>
+          <option>Assets</option>
+          <option>Serial #</option>
+          <option>Model</option>
+        </select>
+        <% } %>
+        <input class="form-control me-2" type="search" placeholder="Search">
         <button class="btn btn-outline-success" type="submit">Search</button>
       </form>
-    </nav>
-</div>
+      <div class="container d-flex flex-fill">
+      </div>
+      <ul class="navbar-nav d-flex">
+        <li class="nav-item"><a href="#" class="nav-link">Add</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">Upload</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>

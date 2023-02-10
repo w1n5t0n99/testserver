@@ -6,12 +6,14 @@ use sailfish::TemplateOnce;
 use crate::utils::e500;
 use crate::components::Link;
 use crate::components::navbar::{NavBar, NavBarBuilder};
+use crate::components::searchbar::{SearchBar, SearchBarBuilder};
 
 #[derive(TemplateOnce)]
 #[template(path = "list.stpl")]
 struct ListPage<'a> {
     pub messages: Vec<&'a str>,
     pub navbar: NavBar,
+    pub search_bar: SearchBar,
 }
 
 #[tracing::instrument( name = "List", skip_all)]
@@ -31,9 +33,18 @@ pub async fn list(flash_messages: IncomingFlashMessages) -> Result<impl Responde
         .build()
         .map_err(e500)?;
 
+    let search_bar = SearchBarBuilder::default()
+        .title("Assets".to_string())
+        .form_url("/web/list".to_string())
+        .search_filter((None, vec!["All".to_string(), "Assets".to_string(), "Model".to_string(), "Serial #".to_string()]))
+        .add_link(Link::Normal { name: "Add Item".into(), url: "/web/home".into() })
+        .build()
+        .map_err(e500)?;
+
     let body = ListPage {
         messages,
         navbar,
+        search_bar,
     }
     .render_once()
     .map_err(e500)?;
