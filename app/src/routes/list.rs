@@ -36,11 +36,12 @@ pub async fn list(flash_messages: IncomingFlashMessages) -> Result<impl Responde
     let search_bar = SearchBarBuilder::default()
         .title("Assets".to_string())
         .form_url("/web/list".to_string())
-        .search_filter((None, vec!["All".to_string(), "Assets".to_string(), "Model".to_string(), "Serial #".to_string()]))
-        .add_link(Link::Normal { name: "Add Item".into(), url: "/web/home".into() })
+        .search_filter((None, vec!["all".to_string(), "assets".to_string(), "model".to_string(), "serial #".to_string()]))
+        .add_link(Link::Normal { name: "Add".into(), url: "/web/home".into() })
+        .add_link(Link::Disabled { name: "Upload".into(), url: "/web/home".into() })
         .build()
         .map_err(e500)?;
-
+      
     let body = ListPage {
         messages,
         navbar,
